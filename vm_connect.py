@@ -1,11 +1,15 @@
 import paramiko
 import os
 
-#vm connect-------------------------------------------------------
-def execute_ssh_command(hostname, username, password, command):
+#dane do połączenia z vm
+hostname = "188.68.247.171"
+username = "root"
+password = "PzPwr.pl"
+#połączenie z vm i uruchomienie skryptu (read_db_into_heatmap) zmieniającego dane z bazy do postaci heatmap
+def execute_ssh_command(hostname, username, password):
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+    command = "cd google-traffic && python3 read_db_into_heatmap.py"
     try:
         #connect
         ssh_client.connect(hostname, username=username, password=password)
@@ -14,27 +18,17 @@ def execute_ssh_command(hostname, username, password, command):
         #read
         for line in stdout:
             print(line.strip())
-
         for line in stderr:
             print(line.strip())
-
     except Exception as e:
-        print(f"Wystąpił błąd: {e}")
+        print(f"error: {e}")
     finally:
-        # close ssh
+        # close ssh connection
         ssh_client.close()
 
-
-if __name__ == "__main__":
-    hostname = "188.68.247.171"
-    username = "root"
-    password = "PzPwr.pl"
-
-    command = "cd google-traffic && python3 read_db_into_heatmap.py"
-    execute_ssh_command(hostname, username, password, command)
-
-#open and download file--------------------------------------------------------------------------------
-def download_file_from_vm(host, username, password, remote_path, local_path):
+#download_file_from_vm tworzy połączenie ssh i pobiera heatmape, jeżeli wystąpi błąd, to o tym powiadamia
+def download_file_from_vm(host, username, password):
+    #klient ssh
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -44,25 +38,26 @@ def download_file_from_vm(host, username, password, remote_path, local_path):
         #scp
         with ssh_client.open_sftp() as sftp:
             #download
-            sftp.get(remote_path, local_path)
+            for i in range(5):
+                remote_path = rf'/root/google-traffic/heatmap{i + 1}.png'
+                local_path = rf'D:\google-traffic-master\google-traffic-master\heatmap{i + 1}.png'
+                sftp.get(remote_path, local_path)
 
-        print(f"Plik {remote_path} został pobrany pomyślnie do {local_path}")
+        print(f" {remote_path} pobrany do {local_path}")
     except Exception as e:
-        print(f"Wystąpił błąd podczas pobierania pliku: {e}")
+        print(f"error: {e}")
     finally:
         #close ssh connection
         ssh_client.close()
 
+#funckja do otwarcia heatmapy, QoL, żeby ułatwić sprawdzenie poprawności działania
 def open_image_file(file_path):
     os.system(f'start {file_path}')
 
+#uruchomienie skryptu
+execute_ssh_command(hostname, username, password)
 
-hostname = "188.68.247.171"
-username = "root"
-password = "PzPwr.pl"
-
-file_path = r'D:\google-traffic-master\google-traffic-master\heatmap.png'
-remote_path = '/root/google-traffic/heatmap.png'
-local_path = 'heatmap.png'
-download_file_from_vm(hostname, username, password, remote_path, local_path)
-open_image_file(file_path)
+#wywołanie pobierania oraz prosta pętla do odczytu heatmap
+download_file_from_vm(hostname, username, password)
+for i in range (5):
+    open_image_file(rf'D:\google-traffic-master\google-traffic-master\heatmap{i+1}.png')
