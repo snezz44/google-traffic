@@ -1,2 +1,2 @@
 # google-traffic
-scripts created in collaboration with jkarasek, ragatais, snezz44
+scripts created in collaboration with ragatais, snezz44
